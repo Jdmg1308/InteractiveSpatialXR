@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealSense", "RealSense.csproj", "{fa3a62d2-1b30-660e-fd34-affa4c55a97d}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "Utils.csproj", "{a4295544-8e79-5c41-6d64-4e5dc31bdad2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp-firstpass", "Assembly-CSharp-firstpass.csproj", "{475577b4-0aa9-96e0-f3d3-c0a6c677f2ae}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp-Editor", "Assembly-CSharp-Editor.csproj", "{5fa112d4-0bbb-7121-dadd-a8b2d74c7b1c}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{fa3a62d2-1b30-660e-fd34-affa4c55a97d}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{fa3a62d2-1b30-660e-fd34-affa4c55a97d}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{a4295544-8e79-5c41-6d64-4e5dc31bdad2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{a4295544-8e79-5c41-6d64-4e5dc31bdad2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{475577b4-0aa9-96e0-f3d3-c0a6c677f2ae}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{475577b4-0aa9-96e0-f3d3-c0a6c677f2ae}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5fa112d4-0bbb-7121-dadd-a8b2d74c7b1c}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5fa112d4-0bbb-7121-dadd-a8b2d74c7b1c}.Debug|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
