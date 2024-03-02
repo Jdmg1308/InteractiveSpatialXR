@@ -36,31 +36,90 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\NormalRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\MeshExtensions.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Meshing\SkinSurfaceExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\DebugDrawMode.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\VectorExtension.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\PolygonPartitionExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Arrangments\ArrangementExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\DepthCutoff.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Utility\GraphicsSettings.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Utility\ConsoleRedirect.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Marching\MarchingCubesExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Meshing\RefineMeshExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Processing\SlicerExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Nurbs\NurbsSurfaceExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Triangulations\VoronoiExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsARBackgroundRestrictions.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Cameras\OrthoCameraController.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\QuaternionExtensions.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\RendererBuilder.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\ExtensionHelper.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsPointCloud.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\PointCloudToMesh.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Processing\HeatMethodExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsHoleFillingFilter.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsProcessingBlock.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsFrameProvider.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsStreamTextureRenderer.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsDecimationFilter.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\InputBehaviour.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Marching\MarchingSquaresExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsPoseStreamTransformer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\PointExtension.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsARBackgroundRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\CreatePolygonExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\PolygonBooleanExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Cameras\FreeCameraController.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\PolyHedra\SurfaceMeshExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\GeometryExtension.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsSpatialFilter.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\PolyHedra\PolyhedronExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\PolyHedra\NefPolyhedronExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsVideoStreamRequest.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Triangulations\Triangulation2Example.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Hulls\ConvexHull3Example.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\SegmentRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\Polygon2Extension.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\PolygonWithHoles2Extension.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\CompositeRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\GameobjectExtensions.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\CircleRenderer.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsColorizer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Processing\ProcessingExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsTemporalFilter.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\GridRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\PolygonVisibilityExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsProcessingProfile.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\PolygonMinkowskiExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\PolyHedra\ConvexDecompositionExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\CreatePolygonWithHolesExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsPointCloudRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Nurbs\NurbsCurvesExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsDisparityTransform.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsConfiguration.cs" />
-     <Compile Include="Assets\RealSenseSDK2.0\Scripts\PointCloudToMesh.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\PolygonSimplificationExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\PolyHedra\PolyhedronBooleanExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Arrangments\SweepLineExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\FaceRenderer.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsThresholdFilter.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\BaseRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Hulls\ConvexHull2Example.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\IMeshExtension.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Triangulations\Triangulation3Example.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Polygons\PolygonOffsetExample.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsDevice.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsDeviceInspector.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Common\Drawing\VextexRenderer.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\Examples\Geometry\IntersectionExample.cs" />
+     <Compile Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Extensions\ShapeExtention.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\RsProcessingPipe.cs" />
      <Compile Include="Assets\RealSenseSDK2.0\Scripts\ProcessingBlocks\RsAlign.cs" />
      <None Include="Assets\RealSenseSDK2.0\Scripts\RealSense.asmdef" />
+     <None Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\ProjectSettings\ProjectVersion.txt" />
+     <None Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Plugins\CGALDotNetGeometry.xml" />
+     <None Include="Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Plugins\CGALDotNet.xml" />
     <Reference Include="UnityEngine">
         <HintPath>C:\Program Files\Unity\Hub\Editor\2020.3.48f1\Editor\Data\Managed\UnityEngine\UnityEngine.dll</HintPath>
     </Reference>
@@ -295,26 +354,26 @@
     <Reference Include="UnityEditor.WindowsStandalone.Extensions">
         <HintPath>C:\Program Files\Unity\Hub\Editor\2020.3.48f1\Editor\Data\PlaybackEngines\WindowsStandaloneSupport\UnityEditor.WindowsStandalone.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="log4netPlastic">
-        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\log4netPlastic.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.Plastic.Newtonsoft.Json">
         <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\Unity.Plastic.Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Plastic.Antlr3.Runtime">
-        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\Unity.Plastic.Antlr3.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="unityplastic">
-        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\unityplastic.dll</HintPath>
     </Reference>
     <Reference Include="Intel.RealSense">
         <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Assets\RealSenseSDK2.0\Plugins\Intel.RealSense.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.Plastic.Antlr3.Runtime">
+        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\Unity.Plastic.Antlr3.Runtime.dll</HintPath>
+    </Reference>
     <Reference Include="CGALDotNetGeometry">
-        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Assets\Plugins\CGALDotNetUnity\Assets\CGALDotNet\Plugins\CGALDotNetGeometry.dll</HintPath>
+        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Plugins\CGALDotNetGeometry.dll</HintPath>
+    </Reference>
+    <Reference Include="unityplastic">
+        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\unityplastic.dll</HintPath>
+    </Reference>
+    <Reference Include="log4netPlastic">
+        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Library\PackageCache\com.unity.collab-proxy@2.0.4\Lib\Editor\PlasticSCM\log4netPlastic.dll</HintPath>
     </Reference>
     <Reference Include="CGALDotNet">
-        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Assets\Plugins\CGALDotNetUnity\Assets\CGALDotNet\Plugins\CGALDotNet.dll</HintPath>
+        <HintPath>C:\Users\juand\Unity_Projects\ScanToMesh\Assets\RealSenseSDK2.0\Scripts\CGALDotNetUnity\Assets\CGALDotNet\Plugins\CGALDotNet.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib">
         <HintPath>C:\Program Files\Unity\Hub\Editor\2020.3.48f1\Editor\Data\MonoBleedingEdge\lib\mono\4.7.1-api\mscorlib.dll</HintPath>
