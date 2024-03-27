@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using CGALDotNet.Processing;
 using CGALDotNet;
 using CGALDotNet.Triangulations;
 using CGALDotNetGeometry.Numerics;
@@ -17,18 +18,28 @@ using CGALDotNetGeometry.Extensions;
 using CGALDotNet.Hulls;
 using System.Diagnostics;
 using JetBrains.Annotations;
+using System.ComponentModel;
+using static CGALDotNet.CGALGlobal;
 
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class PointCloudToMesh : MonoBehaviour
 {
     // public RsFrameProvider Source;
-    private int reductionValue = 5000; // amount by which the dummy point cloud data is reduced.
+    private int numberOfVertices = 3000;
+    private int width = 100;
+    private int height = 100;
     private Mesh mesh;
     public Material vertexMaterial;
     public Material edgeMaterial;
     public Material hullMaterial;
     private GameObject m_hull;
+    public Stopwatch sw;
+
+    public double totalSum;
+    public double maxSum;
+    public double minSum;
+    public int totalTimes;
 
     [NonSerialized]
     private Vector3[] vertices;
@@ -40,28 +51,22 @@ public class PointCloudToMesh : MonoBehaviour
         // Source.OnStop += Dispose;
         InitializeMesh();   
         // Generate dummy point cloud data
-
-        Stopwatch sw = new Stopwatch();
-        for(int index = 0; index < 10; index++)
-        {
-            sw = Stopwatch.StartNew();
-            GenerateDummyPointCloud();
-            ConvexHullMethod();
-            UnityEngine.Debug.Log(sw.ElapsedMilliseconds);
-        }
-        sw.Stop();
+        totalSum = 0;
+        minSum = double.MaxValue;
+        maxSum = double.MinValue;
+        totalSum = 0;
+        totalTimes = 0;
+        sw = new Stopwatch();
     }
     private void InitializeMesh()
     {
         // Set up UV map texture
-        int width = 640; // Set your desired width
-        int height = 480; // Set your desired height
         // Create mesh
         mesh = new Mesh()
         {
             indexFormat = IndexFormat.UInt32,
         };
-        vertices = new Vector3[(width * height) / reductionValue];
+        vertices = new Vector3[numberOfVertices];
         var indices = new int[vertices.Length];
         for (int i = 0; i < vertices.Length; i++)
             indices[i] = i;
@@ -71,35 +76,31 @@ public class PointCloudToMesh : MonoBehaviour
         mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 10f);
         GetComponent<MeshFilter>().sharedMesh = mesh;
         ShapeMeshCollider = GameObject.Find("Hull").GetComponent<MeshCollider>();
+        ShapeMeshCollider.sharedMesh = mesh;
     }
     protected void LateUpdate()
     {
+        sw = Stopwatch.StartNew();
         GenerateDummyPointCloud();
         ConvexHullMethod();
-        // if (q != null)
-        // {
-        //     Points points;
-        //     if (q.PollForFrame<Points>(out points))
-        //         using (points)
-        //         {
-        //             if (points.Count != mesh.vertexCount)
-        //             {
-        //                 using (var p = points.GetProfile<VideoStreamProfile>())
-        //                     ResetMesh(p.Width, p.Height);
-        //             }
-        //             if (points.TextureData != IntPtr.Zero)
-        //             {
-        //                 uvmap.LoadRawTextureData(points.TextureData, points.Count * sizeof(float) * 2);
-        //                 uvmap.Apply();
-        //             }
-        //             if (points.VertexData != IntPtr.Zero)
-        //             {
-        //                 points.CopyVertices(vertices);
-        //                 mesh.vertices = vertices;
-        //                 mesh.UploadMeshData(false);
-        //             }
-        //         }
-        // }
+        sw.Stop();
+        // Get the elapsed time
+        TimeSpan elapsedTime = sw.Elapsed;
+
+        // Print the time elapsed
+        // UnityEngine.Debug.Log("Time elapsed: " + elapsedTime.TotalMilliseconds);
+
+        // totalSum += elapsedTime.TotalMilliseconds;
+        // totalTimes++;
+
+        // minSum = minSum < elapsedTime.TotalMilliseconds ? minSum : elapsedTime.TotalMilliseconds;
+        // maxSum = maxSum > elapsedTime.TotalMilliseconds ? maxSum : elapsedTime.TotalMilliseconds;
+
+        // UnityEngine.Debug.Log("Average Time elapsed: " + totalSum/totalTimes + " min Time elapsed: " + minSum + " max Time elapsed: " + maxSum);
+        
+        // UnityEngine.Debug.Log("min Time elapsed: " + minSum);
+        // UnityEngine.Debug.Log("max Time elapsed: " + maxSum);
+
     }
     private void GenerateDummyPointCloud()
     {
@@ -110,10 +111,18 @@ public class PointCloudToMesh : MonoBehaviour
         for (int i = 0; i < vertices.Length; i++)
         {
             // Generate random points within a specific range
-            float x = UnityEngine.Random.Range(-20f, 20f);
-            float y = UnityEngine.Random.Range(-20f, 20f);
-            float z = UnityEngine.Random.Range(0f, 40f);
+            // float x = UnityEngine.Random.Range(-20f, 20f);
+            // float y = UnityEngine.Random.Range(-20f, 20f);
+            // float z = UnityEngine.Random.Range(0f, 40f);
+            
+            float x = UnityEngine.Random.Range(0, width);
+            float y = UnityEngine.Random.Range(0, width);
+            float z = UnityEngine.Random.Range(0, height);
             vertices[i] = new Vector3(x, y, z);
+            // Vector3 newPoint = new Vector3(x, y, z);
+            // if (!pointInMesh(newPoint)) {
+            //     vertices[i] = newPoint;
+            // }
         }
         // Update mesh vertices
         mesh.vertices = vertices;
@@ -137,6 +146,87 @@ public class PointCloudToMesh : MonoBehaviour
         ShapeMeshCollider.convex = false;
         ShapeMeshCollider.convex = true;
     }
+
+    private bool pointInMesh(Vector3 point)
+    {
+        // if points are colliding with a plane then do not add them
+        // go through every plane if they collide do not add them
+        int[] triangles = ShapeMeshCollider.sharedMesh.triangles;
+
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            // Get the vertex indices for this triangle
+            int index1 = triangles[i];
+            int index2 = triangles[i + 1];
+            int index3 = triangles[i + 2];
+
+            // Get the actual vertices of the triangle
+            Vector3 vertex1 = vertices[index1];
+            Vector3 vertex2 = vertices[index2];
+            Vector3 vertex3 = vertices[index3];
+
+            // Now you have the vertices of the triangle, you can do whatever you need with them
+            // For example, you can create a Triangle object or perform computations
+            if (IsPointInTriangleCGAL(point, vertex1, vertex2, vertex3)) {
+                return true;
+            }
+        }
+
+        return false;
+        
+    }
+
+    public bool IsPointInTriangleCGAL(Vector3 pt, Vector3 v1, Vector3 v2, Vector3 v3)
+    {
+        var pt3d = new Point3d(pt.x, pt.y, pt.z);
+        var v13d = new Point3d(v1.x, v1.y, v1.z);
+        var v23d = new Point3d(v2.x, v2.y, v2.z);
+        var v33d = new Point3d(v3.x, v3.y, v3.z);
+        //Coplanar(pt3d, v13d, v23d, v33d)
+        if (true) {
+            Vector3 AB = v2 - v1;
+            Vector3 AC = v3 - v1;
+            Vector3 N = Vector3.Cross(AB, AC);  // Normal vector of the triangle
+            N.Normalize();
+
+            Vector3 AP = pt - v1;
+            Vector3 BP = pt - v2;
+            Vector3 CP = pt - v3;
+
+            float dotAPN = Vector3.Dot(AP, N);
+            float dotBPN = Vector3.Dot(BP, N);
+            float dotCPN = Vector3.Dot(CP, N);
+
+            if ((dotAPN > 0 && dotBPN > 0 && dotCPN > 0) || (dotAPN < 0 && dotBPN < 0 && dotCPN < 0) && Coplanar(pt3d, v13d, v23d, v33d)){
+                return true;  // Point is inside the triangle
+            } else {
+                return false;
+            }
+        } 
+    }
+
+    // public bool IsPointInTriangle(Vector3 pt, Vector3 v1, Vector3 v2, Vector3 v3)
+    // {
+    //     // Compute vectors
+    //     Vector3 v0 = v3 - v1;
+    //     Vector3 v2v1 = v2 - v1;
+    //     Vector3 vpt = pt - v1;
+
+    //     // Compute dot products
+    //     float dot00 = Vector3.Dot(v0, v0);
+    //     float dot01 = Vector3.Dot(v0, v2v1);
+    //     float dot02 = Vector3.Dot(v0, vpt);
+    //     float dot11 = Vector3.Dot(v2v1, v2v1);
+    //     float dot12 = Vector3.Dot(v2v1, vpt);
+
+    //     // Compute barycentric coordinates
+    //     float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    //     float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    //     float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+    //     // Check if point is in triangle
+    //     return (u >= 0) && (v >= 0) && (u + v < 1);
+    // }
 
     // private void RemoveInside()
     // {
