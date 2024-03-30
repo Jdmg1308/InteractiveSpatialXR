@@ -18,6 +18,7 @@ using static CGALDotNet.CGALGlobal;
 using CGALDotNet.Polygons;
 using System.Data.Common;
 using System.Security.Cryptography;
+using System.Runtime.ExceptionServices;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class RsPointCloudToMesh : MonoBehaviour
@@ -27,11 +28,9 @@ public class RsPointCloudToMesh : MonoBehaviour
     public Material hullMaterial;
     private GameObject temp;
     private GameObject MeshGameObj;
-    private List<Point3d[]> Objects;
-    // MeshCollider ShapeMeshCollider;
-
-    // Dictionary to map keys (string in this example) to binary values (bool)
-    private Dictionary<Point3d[], bool> rendered;
+    private bool first;
+    private Dictionary<int, GameObject> GameObjReference;
+    private Dictionary<int, Point3d[]> VerticesReference;
     // Changes >
     public RsFrameProvider Source;
     private Mesh mesh;
@@ -187,57 +186,56 @@ public class RsPointCloudToMesh : MonoBehaviour
 
                         mesh.vertices = vertices;
                         mesh.UploadMeshData(false);
-                        ConvexHullMethod();
+                        // ConvexHullMethod();
+                        Helper();
                         
                     }
                 }
         }
     }
     // Changes <
-     private void Initialize()
-    {
-        DIST_THRESHOLD = 1f;
-        // mesh = new Mesh();
-        MeshGameObj = GameObject.Find("Hull");
-        Objects = new List<Point3d[]>();
-        rendered = new Dictionary<Point3d[], bool>();
-        Objects.Add(createNewSet(new Point3d(0, 0, 0)));
-    }
-    private void ConvexHullMethod()
-    {
-        // potential algorithms
-
-        // if angle between 3 points is larger than a set value then it becomes a different shape
-
-        // take away all the error points, create different sets of points
-
-        // for each set of points convex hull and add it to the scene
-
-        // try to do this in one go O(N) (how? how does the lidar data work? randomly?) 
-
-        // no need to process points inside of current mesh, you would have to check if points inside of a mesh that has already been created
-
-        // k tree?
-       
+    public void Helper() {
+        int key = 0;
+        if (first) { 
+            SetPointsReference(key, createNewBox(new Point3d(1, 0.5, 4), new Point3d(0.5, 0.1, 3.5)));
+            key++;
+            CreateGameObjs();
+            first = false;
+        }
+        // System.Random rand = new System.Random();
+        // int ra = rand.Next(0, Objects.Count);
+        // Point3d[] minSet = Objects[0];
+        // ra = rand.Next(vertices.Length/2, vertices.Length);
+        // addPoint(vertices[ra].ToCGALPoint3d());
+        // for each point
         for (int i = 0; i < vertices.Length; i++)
         {
-            addPoint(new Point3d(vertices[i].x, vertices[i].y, vertices[i].z));
+            // UnityEngine.Debug.Log(vertices[i]);
+            if (vertices[i] != new Vector3(0, 0, 0)) {
+                if (!TryAddPoint(vertices[i].ToCGALPoint3d())) {
+                    // could not add point, create new set.
+                    // SetPointsReference(key, createNewBox(new Point3d(0.2, 0.1, 4), new Point3d(0.1, 0.0, 4)));
+                    // key++;
+                }
+            }
         }
-        
         // for each one that has not been instantiated
-        foreach (Point3d[] setOfPoints in Objects) {
-            if (!rendered.ContainsKey(setOfPoints)) {
-                UnityEngine.Debug.Log("Chicken Balls lmao 1");
+        CreateGameObjs();
+    }
+
+    private void CreateGameObjs() {
+        foreach (int i in VerticesReference.Keys) {
+            // if new
+            if (GetGameObjectReference(i) == null) {   
+                Point3d[] points = GetPointsReference(i);
                 // create temp gameobj
-                temp = ConvexHull3<EEK>.Instance.CreateHullAsPolyhedron(setOfPoints, setOfPoints.Length).ToUnityMesh("Hull", hullMaterial);
-                // temp = polyhedron.ToUnityMesh("Hull", hullMaterial);
+                temp = ConvexHull3<EEK>.Instance.CreateHullAsPolyhedron(points, points.Length).ToUnityMesh("Hull", hullMaterial);
                 GameObject newGameObj = Instantiate(MeshGameObj);
-                
                 if (temp.GetComponent<MeshFilter>()) {       
                     // set mesh
                     newGameObj.GetComponent<MeshFilter>().mesh = temp.GetComponent<MeshFilter>().mesh;
                     // set collider
-                    if (temp.GetComponent<MeshFilter>().mesh.vertices.Length > 10) { 
+                    if (temp.GetComponent<MeshFilter>().mesh.vertices.Length >= 8) { 
                         MeshCollider ShapeMeshCollider = newGameObj.GetComponent<MeshCollider>();
                         ShapeMeshCollider.sharedMesh = temp.GetComponent<MeshFilter>().mesh;
                         ShapeMeshCollider.convex = false;
@@ -246,89 +244,54 @@ public class RsPointCloudToMesh : MonoBehaviour
                 }
                 // destroy temp gameobj
                 Destroy(temp);
-                SetRendered(setOfPoints, true);
+                // save gameObj
+                SetGameObjectReference(i, newGameObj);
+            }
+        }
+    }
+    private void Initialize()
+    {
+        DIST_THRESHOLD = 0.3f;
+        MeshGameObj = GameObject.Find("Hull");
+        GameObjReference = new Dictionary<int, GameObject>();
+        VerticesReference = new Dictionary<int, Point3d[]>();
+        first = true;
+    }
+    
+    bool TryAddPoint(Point3d point) {
+        double min_dist = double.MaxValue;
+        int minBox = 0;
+        // find closest box and distance
+        foreach (int i in VerticesReference.Keys) {
+            // check if already inside a bounding box
+            if (insideOfBox(GetPointsReference(i), point)) {
+                return false;
             } else {
-                if (!GetRendered(setOfPoints)) {
-                    // false, therefore needs updating
-                    // we simply need to update mesh right? but how
-                    UnityEngine.Debug.Log("Chicken Balls lmao 2");
-                    // create temp gameobj
-                    temp = ConvexHull3<EEK>.Instance.CreateHullAsPolyhedron(setOfPoints, setOfPoints.Length).ToUnityMesh("Hull", hullMaterial);
-                    // temp = polyhedron.ToUnityMesh("Hull", hullMaterial);
-                    GameObject newGameObj = Instantiate(MeshGameObj);
-                    
-                    if (temp.GetComponent<MeshFilter>()) {       
-                        // set mesh
-                        newGameObj.GetComponent<MeshFilter>().mesh = temp.GetComponent<MeshFilter>().mesh;
-                        // set collider
-                        if (temp.GetComponent<MeshFilter>().mesh.vertices.Length > 10) { 
-                            MeshCollider ShapeMeshCollider = newGameObj.GetComponent<MeshCollider>();
-                            ShapeMeshCollider.sharedMesh = temp.GetComponent<MeshFilter>().mesh;
-                            ShapeMeshCollider.convex = false;
-                            ShapeMeshCollider.convex = true;
-                        }
-                    }
-                    // destroy temp gameobj
-                    Destroy(temp);
-                    SetRendered(setOfPoints, true);
+                // get closest distance to a vertex in the mesh
+                double dist = closestPointDistance(point, GetPointsReference(i));
+                if (dist <= min_dist) {
+                    min_dist = dist;
+                    minBox = i;
                 }
             }
         }
-
-
-    }
-
-    void addPoint(Point3d point) {
-        // store which set it is closest to.
-        double min_dist = double.MaxValue;
-        System.Random rand = new System.Random();
-        int r = rand.Next(0, Objects.Count);
-        Point3d[] minSet = Objects[r];
-        r = rand.Next(0, 7);
-        int min_closest = r;
-        min_dist = rand.Next(0, 2);
-
-        // for (int j = 0; j < Objects.Count; j++) {
-            // if (!insideOfBox(Objects[j], point)) {
-                // // it was not found, get closest set
-                // int closest = closestPoint(point, set);
-                // double dist = Math.Abs((set[closest] - point).Magnitude);
-                // if (min_dist >= dist) {
-                //     min_dist = dist;
-                //     minSet = set;
-                //     min_closest = closest;
-                // }
-            // }
-        // }
-        // Not found
         // if within threshold then update closest set
         if (min_dist <= DIST_THRESHOLD) {
-            // update the mesh (minP)
-            // replace closest Point
-            minSet[min_closest] = point;
-            SetRendered(minSet, false);
-        } else {
-            // else new set must be created 
-            // create new object
-            Objects.Add(createNewSet(point));
+            updateSet(minBox, point);
+            return true;
         }
+        return false;
     }
-
-    Point3d[] createNewSet(Point3d p){
-        // we need at least 4 valid points
-        Point3d[] points = new Point3d[8];
-        points[0] = p;
-        points[1] = new Point3d(p.x + 0.05, p.y, p.z);
-        points[2] = new Point3d(p.x + 0.05, p.y, p.z + 0.05);
-        points[3] = new Point3d(p.x, p.y, p.z + 0.05);
-        points[4] = new Point3d(p.x, p.y + 0.05, p.z);
-        points[5] = new Point3d(p.x + 0.05, p.y + 0.05, p.z);
-        points[6] = new Point3d(p.x + 0.05, p.y + 0.05, p.z + 0.05);
-        points[7] = new Point3d(p.x, p.y + 0.05, p.z + 0.05);
-        return points;
+    double closestPointDistance(Point3d p, Point3d[] bpx) {
+        // to get closest mesh get closest point
+        double min_dist = double.MaxValue;
+        for (int i = 0; i < bpx.Length; i++) {
+            double d1 = Math.Abs((bpx[i] - p).Magnitude); //////////////////////////////////////////////////////////////////////////////////////
+            min_dist = Math.Min(d1, min_dist);
+        }
+        return min_dist; 
     }
-
-    int closestPoint(Point3d p, Point3d[] set) {
+    int closestPointIndex(Point3d p, Point3d[] set) {
         // to get closest mesh get closest point
         int min_closest = 0;
         double min_dist = double.MaxValue;
@@ -340,44 +303,96 @@ public class RsPointCloudToMesh : MonoBehaviour
             }
         }
         return min_closest; 
-
     }
 
+    Point3d[] createNewBox(Point3d max, Point3d min) {
+        // we need at least 4 valid points
+        Point3d[] points = new Point3d[8];
+        points[0] = min;
+        points[1] = new Point3d(max.x, min.y, min.z);
+        points[2] = new Point3d(max.x, min.y, max.z);
+        points[3] = new Point3d(min.x, min.y, max.z);
+        points[4] = new Point3d(min.x, max.y, min.z);
+        points[5] = new Point3d(max.x, max.y, min.z);
+        points[6] = max;
+        points[7] = new Point3d(min.x, max.y, max.z);
+        return points;
+    }
     bool insideOfBox (Point3d[] box, Point3d point) {
-        // if the point is between lower x higher x
-        // if the point is between lower y and higer y
-        // if the point is between lower y and higer y
-        if (point.x >= box[0].x && point.x <= box[6].x &&
-               point.y >= box[0].y && point.y <= box[6].y &&
-               point.z >= box[0].z && point.z <= box[6].z) {
-                return true;
-
-        }
-        return false;
+        return point.x < box[6].x && point.y < box[6].y && point.z < box[6].z && point.x > box[0].x && point.y > box[0].y && point.z > box[0].z;
     }
+    public void updateSet(int key, Point3d p) {
+        // update the mesh
+        Point3d[] points = GetPointsReference(key);
+        GameObject gameObj = GetGameObjectReference(key);
+        
+        if (gameObj == null) { UnityEngine.Debug.LogError("gameObj component not found." + key); return; }
+        if (points == null) { UnityEngine.Debug.LogError("Points array not found." + key); return; }
 
-    // Method to set the binary value for a given key
-    public void SetRendered(Point3d[] key, bool value)
+        Point3d max = new Point3d(Math.Max(p.x, points[6].x), Math.Max(p.y, points[6].y), Math.Max(p.z, points[6].z));
+        Point3d min = new Point3d(Math.Min(p.x, points[0].x), Math.Min(p.y, points[0].y), Math.Min(p.z, points[0].z));
+
+        UpdateMesh(createNewBox(max, min).ToUnityVector3(), gameObj);
+    }
+    void UpdateMesh(Vector3[] vertices, GameObject gameObject) 
     {
-        if (rendered.ContainsKey(key))
-        {
-            // Key already exists, update the value
-            rendered[key] = value;
+        MeshFilter meshFilter = gameObject.GetComponent<MeshFilter>();
+        MeshCollider meshCollider = gameObject.GetComponent<MeshCollider>();
+
+        if (meshFilter == null) { UnityEngine.Debug.LogError("MeshFilter component not found on the GameObject."); return; }
+        if (meshCollider == null) { UnityEngine.Debug.LogError("MeshCollider component not found on the GameObject."); return; }
+
+        Mesh mesh = meshFilter.mesh;
+
+        mesh.Clear();
+        mesh.vertices = vertices;
+        // mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+
+        // Update the collider
+        meshCollider.sharedMesh = null; // Clear previous mesh
+        meshCollider.sharedMesh = mesh; // Assign the updated mesh to the collider
+    }
+    // Method to set the GameObj for a given key
+    public void SetGameObjectReference(int key, GameObject value)
+    {
+        if (GameObjReference.ContainsKey(key)) { 
+            // Key already exists, update the value 
+            GameObjReference[key] = value;
         }
         else
         {
             // Key doesn't exist, add a new entry
-            rendered.Add(key, value);
+            GameObjReference.Add(key, value);
         }
     }
-
-    // Method to get the binary value for a given key
-    public bool GetRendered(Point3d[] key)
+    // Method to get the gameObject reference for a given key
+    public GameObject GetGameObjectReference(int key)
     {
-        bool value = false;
-        rendered.TryGetValue(key, out value);
-        return value;
+        GameObject gamObj = null;
+        GameObjReference.TryGetValue(key, out gamObj);
+        return gamObj;
     }
-    
-    // Changes >
+    // Method to set the points array  for a given key
+    public void SetPointsReference(int key, Point3d[] value)
+    {
+        if (VerticesReference.ContainsKey(key)) { 
+            // Key already exists, update the value 
+            VerticesReference[key] = value;
+        }
+        else
+        {
+            // Key doesn't exist, add a new entry
+            VerticesReference.Add(key, value);
+        }
+    }
+    // Method to get the points array reference for a given key
+    public Point3d[] GetPointsReference(int key)
+    {
+        Point3d[] points = null;
+        VerticesReference.TryGetValue(key, out points);
+        return points;
+    }
+
 }
+
