@@ -1,2 +1,0 @@
-# Starting compiling RealSense.dll
-C:\Program Files\Unity\Hub\Editor\2020.3.48f1\Editor\Data\Tools\RoslynScripts\unity_csc.bat /noconfig @Temp/UnityTempFile-dd30b7fdd07a0564b89768570f5bdc7a

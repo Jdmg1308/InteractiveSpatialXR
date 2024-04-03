@@ -31,6 +31,27 @@ public class RsPointCloudToMesh : MonoBehaviour
     private bool first;
     private Dictionary<int, GameObject> GameObjReference;
     private Dictionary<int, Point3d[]> VerticesReference;
+    public int[] cube_triangles = new int[] 
+        {
+            // Front face
+            0, 1, 2,
+            0, 2, 3,
+            // Back face
+            4, 6, 5,
+            4, 7, 6,
+            // Top face
+            5, 6, 2,
+            5, 2, 1,
+            // Bottom face
+            0, 3, 7,
+            0, 7, 4,
+            // Left face
+            0, 4, 5,
+            0, 5, 1,
+            // Right face
+            3, 2, 6,
+            3, 6, 7
+        };
     // Changes >
     public RsFrameProvider Source;
     private Mesh mesh;
@@ -197,9 +218,11 @@ public class RsPointCloudToMesh : MonoBehaviour
     public void Helper() {
         int key = 0;
         if (first) { 
-            SetPointsReference(key, createNewBox(new Point3d(1, 0.5, 4), new Point3d(0.5, 0.1, 3.5)));
+            Point3d[] firstPoints = createNewBox(vertices[300].ToCGALPoint3d(), vertices[300].ToCGALPoint3d());
+            SetPointsReference(key, firstPoints);
+            // SetPointsReference(key, createNewBox(new Point3d(0.01, 0.01, 0.81), new Point3d(-0.01, -0.01, 0.8)));
+            CreateGameObjs(key, firstPoints);
             key++;
-            CreateGameObjs();
             first = false;
         }
         // System.Random rand = new System.Random();
@@ -208,50 +231,54 @@ public class RsPointCloudToMesh : MonoBehaviour
         // ra = rand.Next(vertices.Length/2, vertices.Length);
         // addPoint(vertices[ra].ToCGALPoint3d());
         // for each point
+        double MaxVal = 2;
+        double MinVal = 0.1;
         for (int i = 0; i < vertices.Length; i++)
         {
             // UnityEngine.Debug.Log(vertices[i]);
-            if (vertices[i] != new Vector3(0, 0, 0)) {
+            if (vertices[i] != new Vector3(0, 0, 0) && (Math.Abs(vertices[i].x) < MaxVal && Math.Abs(vertices[i].y) < MaxVal && Math.Abs(vertices[i].z) < MaxVal) && (Math.Abs(vertices[i].x) > MinVal && Math.Abs(vertices[i].y) > MinVal && Math.Abs(vertices[i].z) > MinVal)) {
                 if (!TryAddPoint(vertices[i].ToCGALPoint3d())) {
                     // could not add point, create new set.
-                    // SetPointsReference(key, createNewBox(new Point3d(0.2, 0.1, 4), new Point3d(0.1, 0.0, 4)));
-                    // key++;
+                    Point3d[] points = createNewBox(vertices[i].ToCGALPoint3d(), vertices[i].ToCGALPoint3d());
+                    SetPointsReference(key, points);
+                    CreateGameObjs(key, points);
+                    key++;
                 }
             }
         }
-        // for each one that has not been instantiated
-        CreateGameObjs();
+    }
+
+    private void CreateGameObjs(int key, Point3d[] points) {
+        // create gameobj
+        GameObject newGameObj = Instantiate(MeshGameObj);
+        // create mesh
+        Mesh New_mesh = new Mesh();
+        
+        New_mesh.Clear();
+
+        New_mesh.vertices = points.ToUnityVector3();
+        New_mesh.triangles = cube_triangles;
+
+        mesh.RecalculateNormals();
+        
+        if (newGameObj.GetComponent<MeshFilter>()) {       
+            // set mesh
+            newGameObj.GetComponent<MeshFilter>().mesh = New_mesh;
+            // set collider
+            // if (newGameObj.GetComponent<MeshFilter>().mesh.vertices.Length >= 8) { 
+            //     MeshCollider ShapeMeshCollider = newGameObj.GetComponent<MeshCollider>();
+            //     ShapeMeshCollider.sharedMesh = New_mesh;
+            //     ShapeMeshCollider.convex = false;
+            //     ShapeMeshCollider.convex = true;
+            // }
+        }
+        // save gameObj
+        SetGameObjectReference(key, newGameObj);
     }
 
-    private void CreateGameObjs() {
-        foreach (int i in VerticesReference.Keys) {
-            // if new
-            if (GetGameObjectReference(i) == null) {   
-                Point3d[] points = GetPointsReference(i);
-                // create temp gameobj
-                temp = ConvexHull3<EEK>.Instance.CreateHullAsPolyhedron(points, points.Length).ToUnityMesh("Hull", hullMaterial);
-                GameObject newGameObj = Instantiate(MeshGameObj);
-                if (temp.GetComponent<MeshFilter>()) {       
-                    // set mesh
-                    newGameObj.GetComponent<MeshFilter>().mesh = temp.GetComponent<MeshFilter>().mesh;
-                    // set collider
-                    if (temp.GetComponent<MeshFilter>().mesh.vertices.Length >= 8) { 
-                        MeshCollider ShapeMeshCollider = newGameObj.GetComponent<MeshCollider>();
-                        ShapeMeshCollider.sharedMesh = temp.GetComponent<MeshFilter>().mesh;
-                        ShapeMeshCollider.convex = false;
-                        ShapeMeshCollider.convex = true;
-                    }
-                }
-                // destroy temp gameobj
-                Destroy(temp);
-                // save gameObj
-                SetGameObjectReference(i, newGameObj);
-            }
-        }
-    }
     private void Initialize()
     {
-        DIST_THRESHOLD = 0.3f;
+        DIST_THRESHOLD = 0.6f;
         MeshGameObj = GameObject.Find("Hull");
         GameObjReference = new Dictionary<int, GameObject>();
         VerticesReference = new Dictionary<int, Point3d[]>();
@@ -275,7 +302,7 @@ public class RsPointCloudToMesh : MonoBehaviour
                 }
             }
         }
-        // if within threshold then update closest set
+            // if within threshold then update closest set
         if (min_dist <= DIST_THRESHOLD) {
             updateSet(minBox, point);
             return true;
@@ -304,7 +331,6 @@ public class RsPointCloudToMesh : MonoBehaviour
         }
         return min_closest; 
     }
-
     Point3d[] createNewBox(Point3d max, Point3d min) {
         // we need at least 4 valid points
         Point3d[] points = new Point3d[8];
@@ -319,7 +345,8 @@ public class RsPointCloudToMesh : MonoBehaviour
         return points;
     }
     bool insideOfBox (Point3d[] box, Point3d point) {
-        return point.x < box[6].x && point.y < box[6].y && point.z < box[6].z && point.x > box[0].x && point.y > box[0].y && point.z > box[0].z;
+        return Math.Abs(point.x) < Math.Abs(box[6].x) && Math.Abs(point.y) < Math.Abs(box[6].y) && Math.Abs(point.z) < Math.Abs(box[6].z)
+        && Math.Abs(point.x) > Math.Abs(box[0].x) && Math.Abs(point.y) > Math.Abs(box[0].y) && Math.Abs(point.z) > Math.Abs(box[0].z);
     }
     public void updateSet(int key, Point3d p) {
         // update the mesh
@@ -329,30 +356,99 @@ public class RsPointCloudToMesh : MonoBehaviour
         if (gameObj == null) { UnityEngine.Debug.LogError("gameObj component not found." + key); return; }
         if (points == null) { UnityEngine.Debug.LogError("Points array not found." + key); return; }
 
+
+        // rethink this 
         Point3d max = new Point3d(Math.Max(p.x, points[6].x), Math.Max(p.y, points[6].y), Math.Max(p.z, points[6].z));
         Point3d min = new Point3d(Math.Min(p.x, points[0].x), Math.Min(p.y, points[0].y), Math.Min(p.z, points[0].z));
+
+        // UnityEngine.Debug.Log("max " + max + " min " + min);
 
         UpdateMesh(createNewBox(max, min).ToUnityVector3(), gameObj);
     }
     void UpdateMesh(Vector3[] vertices, GameObject gameObject) 
     {
         MeshFilter meshFilter = gameObject.GetComponent<MeshFilter>();
-        MeshCollider meshCollider = gameObject.GetComponent<MeshCollider>();
+        // MeshCollider meshCollider = gameObject.GetComponent<MeshCollider>();
 
         if (meshFilter == null) { UnityEngine.Debug.LogError("MeshFilter component not found on the GameObject."); return; }
-        if (meshCollider == null) { UnityEngine.Debug.LogError("MeshCollider component not found on the GameObject."); return; }
+        // if (meshCollider == null) { UnityEngine.Debug.LogError("MeshCollider component not found on the GameObject."); return; }
 
         Mesh mesh = meshFilter.mesh;
+        // int[] triValues = mesh.triangles;
+
+        // UnityEngine.Debug.Log("vertex n" + mesh.vertices.Length);
+        // UnityEngine.Debug.Log("triangles n" + triValues.Length);
 
         mesh.Clear();
         mesh.vertices = vertices;
-        // mesh.triangles = triangles;
+        mesh.triangles = cube_triangles;
         mesh.RecalculateNormals();
 
         // Update the collider
-        meshCollider.sharedMesh = null; // Clear previous mesh
-        meshCollider.sharedMesh = mesh; // Assign the updated mesh to the collider
+        // meshCollider.sharedMesh = null; // Clear previous mesh
+        // meshCollider.sharedMesh = mesh; // Assign the updated mesh to the collider
     }
+    
+    // calculate overall plane
+    
+    // public static Plane CalculateAveragePlane(Vector3[] points)
+    // {
+    //     if (points == null || points.Length < 3)
+    //     {
+    //         UnityEngine.Debug.LogError("Insufficient points to calculate average plane.");
+    //         return new Plane();
+    //     }
+
+    //     // Calculate the centroid of the points
+    //     Vector3 centroid = Vector3.zero;
+    //     foreach (Vector3 point in points)
+    //     {
+    //         centroid += point;
+    //     }
+    //     centroid /= points.Length;
+
+    //     // Compute the covariance matrix
+    //     Matrix4x4 covarianceMatrix = new Matrix4x4();
+    //     foreach (Vector3 point in points)
+    //     {
+    //         Vector3 deviation = point - centroid;
+    //         covarianceMatrix.m00 += deviation.x * deviation.x;
+    //         covarianceMatrix.m01 += deviation.x * deviation.y;
+    //         covarianceMatrix.m02 += deviation.x * deviation.z;
+    //         covarianceMatrix.m11 += deviation.y * deviation.y;
+    //         covarianceMatrix.m12 += deviation.y * deviation.z;
+    //         covarianceMatrix.m22 += deviation.z * deviation.z;
+    //     }
+    //     covarianceMatrix /= points.Length;
+
+    //     // Compute the normal vector of the best-fit plane using PCA
+    //     Vector3 normal = Vector3.zero;
+    //     if (PCA(covarianceMatrix, ref normal))
+    //     {
+    //         return new Plane(normal, centroid);
+    //     }
+    //     else
+    //     {
+    //         UnityEngine.Debug.LogError("Failed to compute normal vector.");
+    //         return new Plane();
+    //     }
+    // }
+
+    // private static bool PCA(Matrix4x4 covarianceMatrix, ref Vector3 normal)
+    // {
+    //     // Perform eigenvalue decomposition to find the eigenvector corresponding to the smallest eigenvalue
+    //     Matrix4x4 eigenVectors;
+    //     if (!covarianceMatrix.Diagonalize(out eigenVectors))
+    //     {
+    //         return false;
+    //     }
+
+    //     // The eigenvector corresponding to the smallest eigenvalue is the normal of the plane
+    //     normal = eigenVectors.GetColumn(2).normalized;
+
+    //     return true;
+    // }
+    
     // Method to set the GameObj for a given key
     public void SetGameObjectReference(int key, GameObject value)
     {
