@@ -305,7 +305,6 @@ public class RsPointCloudToMesh : MonoBehaviour
         }
         double min_dist = double.MaxValue;
         int minBox = 0;
-        int min_index = 0;
         // find closest box and distance
         foreach (int i in VerticesReference.Keys) {
             // check if already inside a bounding box
@@ -313,33 +312,28 @@ public class RsPointCloudToMesh : MonoBehaviour
                 return false;
             } else {
                 // get closest distance to a vertex in the mesh
-                int index = 0;
-                double dist = closestPointDistance(point, GetPointsReference(i), ref index);
+                
+                double dist = closestPointDistance(point, GetPointsReference(i));
                 if (dist <= min_dist) {
                     min_dist = dist;
                     minBox = i;
-                    min_index = index;
                 }
             }
         }
         // if within threshold then update closest set
-        updateSet(minBox, point, min_index);
+        updateSet(minBox, point);
         // if (min_dist <= DIST_THRESHOLD) {
         //     updateSet(minBox, point);
         //     return true;
         // }
         return true;
     }
-    double closestPointDistance(Point3d p, Point3d[] bpx, ref int index) {
+    double closestPointDistance(Point3d p, Point3d[] bpx) {
         // to get closest mesh get closest point
         double min_dist = double.MaxValue;
         for (int i = 0; i < bpx.Length; i++) {
             double d1 = Math.Abs((bpx[i] - p).Magnitude); //////////////////////////////////////////////////////////////////////////////////////
-            // min_dist = Math.Min(d1, min_dist);
-            if (d1 < min_dist) {    
-                index = i;
-                min_dist = d1;
-            }
+            min_dist = Math.Min(d1, min_dist);
         }
         return min_dist; 
     }
@@ -418,27 +412,6 @@ public class RsPointCloudToMesh : MonoBehaviour
         //     newBox = createNewBox(curr_max, p);
         // }
         UpdateMesh(createNewBox(new_max, new_min).ToUnityVector3(), gameObj);
-    }
-    public void updateSet(int key, Point3d p, int i) {
-        // update the mesh
-        Point3d[] points = GetPointsReference(key);
-        GameObject gameObj = GetGameObjectReference(key);
-        
-        if (gameObj == null) { UnityEngine.Debug.LogError("gameObj component not found." + key); return; }
-        if (points == null) { UnityEngine.Debug.LogError("Points array not found." + key); return; }
-
-        // Point3d curr_max = points[6];
-        // Point3d curr_min = points[0];
-
-        // float currentSurfaceArea = BoundingBoxSurfaceArea(curr_max, curr_min);
-        // Point3d[] newBox = points;
-        // if (BoundingBoxSurfaceArea(p, curr_min) > currentSurfaceArea) {
-        //     newBox = createNewBox(p, curr_min);
-        // } else if (BoundingBoxSurfaceArea(curr_max, p) > currentSurfaceArea) {
-        //     newBox = createNewBox(curr_max, p);
-        // }
-        points[i] = p;
-        UpdateMesh(points.ToUnityVector3(), gameObj);
     }
     float BoundingBoxSurfaceArea(Point3d p1, Point3d p2) {
         // Calculate the absolute differences between the coordinates
