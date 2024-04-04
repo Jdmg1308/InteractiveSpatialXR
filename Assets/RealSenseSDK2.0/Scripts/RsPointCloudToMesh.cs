@@ -19,6 +19,7 @@ using CGALDotNet.Polygons;
 using System.Data.Common;
 using System.Security.Cryptography;
 using System.Runtime.ExceptionServices;
+using System.Runtime.Remoting.Messaging;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class RsPointCloudToMesh : MonoBehaviour
@@ -61,6 +62,10 @@ public class RsPointCloudToMesh : MonoBehaviour
     private Vector3[] vertices;
 
     FrameQueue q;
+    // private int totalTimes;
+    // private double totalSum;
+    // private double minSum = double.MaxValue;
+    // public double maxSum = double.MinValue;
 
     void Start()
     {
@@ -207,8 +212,23 @@ public class RsPointCloudToMesh : MonoBehaviour
 
                         mesh.vertices = vertices;
                         mesh.UploadMeshData(false);
-                        // ConvexHullMethod();
+
+                        // Stopwatch sw = Stopwatch.StartNew();
                         Helper();
+                        // sw.Stop();
+                        // Get the elapsed time
+                        // TimeSpan elapsedTime = sw.Elapsed;
+                        // Print the time elapsed
+                        // UnityEngine.Debug.Log("Time elapsed: " + elapsedTime.TotalMilliseconds);
+
+                        // totalSum += elapsedTime.TotalMilliseconds;
+                        // totalTimes++;
+
+                        // minSum = minSum < elapsedTime.TotalMilliseconds ? minSum : elapsedTime.TotalMilliseconds;
+                        // maxSum = maxSum > elapsedTime.TotalMilliseconds ? maxSum : elapsedTime.TotalMilliseconds;
+
+                        // UnityEngine.Debug.Log("Average Time elapsed: " + totalSum/totalTimes + " min Time elapsed: " + minSum + " max Time elapsed: " + maxSum);
+                        // UnityEngine.Debug.Log("N of vertices: " + vertices.Length + " Iteration: " + totalTimes + " boxes " + GameObjReference.Values.Count);
                         
                     }
                 }
@@ -217,26 +237,20 @@ public class RsPointCloudToMesh : MonoBehaviour
     // Changes <
     public void Helper() {
         int key = 0;
-        if (first) { 
-            Point3d[] firstPoints = createNewBox(vertices[300].ToCGALPoint3d(), vertices[300].ToCGALPoint3d());
-            SetPointsReference(key, firstPoints);
-            // SetPointsReference(key, createNewBox(new Point3d(0.01, 0.01, 0.81), new Point3d(-0.01, -0.01, 0.8)));
-            CreateGameObjs(key, firstPoints);
-            key++;
-            first = false;
-        }
-        // System.Random rand = new System.Random();
-        // int ra = rand.Next(0, Objects.Count);
-        // Point3d[] minSet = Objects[0];
-        // ra = rand.Next(vertices.Length/2, vertices.Length);
-        // addPoint(vertices[ra].ToCGALPoint3d());
-        // for each point
-        double MaxVal = 2;
-        double MinVal = 0.1;
+        // if (first) { 
+        //     Point3d[] firstPoints = createNewBox(vertices[300].ToCGALPoint3d(), vertices[300].ToCGALPoint3d());
+        //     SetPointsReference(key, firstPoints);
+        //     CreateGameObjs(key, firstPoints);
+        //     key++;
+        //     first = false;
+        // }
+        double MaxVal = 4;
+        double MinVal = 0.3;
         for (int i = 0; i < vertices.Length; i++)
         {
             // UnityEngine.Debug.Log(vertices[i]);
             if (vertices[i] != new Vector3(0, 0, 0) && (Math.Abs(vertices[i].x) < MaxVal && Math.Abs(vertices[i].y) < MaxVal && Math.Abs(vertices[i].z) < MaxVal) && (Math.Abs(vertices[i].x) > MinVal && Math.Abs(vertices[i].y) > MinVal && Math.Abs(vertices[i].z) > MinVal)) {
+                // if ((Math.Abs(vertices[i].x) < MaxVal && Math.Abs(vertices[i].y) < MaxVal && Math.Abs(vertices[i].z) < MaxVal) && (Math.Abs(vertices[i].x) > MinVal && Math.Abs(vertices[i].y) > MinVal && Math.Abs(vertices[i].z) > MinVal)) {
                 if (!TryAddPoint(vertices[i].ToCGALPoint3d())) {
                     // could not add point, create new set.
                     Point3d[] points = createNewBox(vertices[i].ToCGALPoint3d(), vertices[i].ToCGALPoint3d());
@@ -259,7 +273,7 @@ public class RsPointCloudToMesh : MonoBehaviour
         New_mesh.vertices = points.ToUnityVector3();
         New_mesh.triangles = cube_triangles;
 
-        mesh.RecalculateNormals();
+        // mesh.RecalculateNormals();
         
         if (newGameObj.GetComponent<MeshFilter>()) {       
             // set mesh
@@ -278,7 +292,7 @@ public class RsPointCloudToMesh : MonoBehaviour
 
     private void Initialize()
     {
-        DIST_THRESHOLD = 0.6f;
+        DIST_THRESHOLD = 1;
         MeshGameObj = GameObject.Find("Hull");
         GameObjReference = new Dictionary<int, GameObject>();
         VerticesReference = new Dictionary<int, Point3d[]>();
@@ -286,6 +300,9 @@ public class RsPointCloudToMesh : MonoBehaviour
     }
     
     bool TryAddPoint(Point3d point) {
+        if (VerticesReference.Keys.Count == 0) {
+            return false;
+        }
         double min_dist = double.MaxValue;
         int minBox = 0;
         // find closest box and distance
@@ -295,6 +312,7 @@ public class RsPointCloudToMesh : MonoBehaviour
                 return false;
             } else {
                 // get closest distance to a vertex in the mesh
+                
                 double dist = closestPointDistance(point, GetPointsReference(i));
                 if (dist <= min_dist) {
                     min_dist = dist;
@@ -302,12 +320,13 @@ public class RsPointCloudToMesh : MonoBehaviour
                 }
             }
         }
-            // if within threshold then update closest set
-        if (min_dist <= DIST_THRESHOLD) {
-            updateSet(minBox, point);
-            return true;
-        }
-        return false;
+        // if within threshold then update closest set
+        updateSet(minBox, point);
+        // if (min_dist <= DIST_THRESHOLD) {
+        //     updateSet(minBox, point);
+        //     return true;
+        // }
+        return true;
     }
     double closestPointDistance(Point3d p, Point3d[] bpx) {
         // to get closest mesh get closest point
@@ -318,19 +337,7 @@ public class RsPointCloudToMesh : MonoBehaviour
         }
         return min_dist; 
     }
-    int closestPointIndex(Point3d p, Point3d[] set) {
-        // to get closest mesh get closest point
-        int min_closest = 0;
-        double min_dist = double.MaxValue;
-        for (int i = 0; i < set.Length; i++) {
-            double d1 = Math.Abs((set[i] - p).Magnitude);
-            if (d1 <= min_dist) {
-                min_dist = d1;
-                min_closest = i;
-            }
-        }
-        return min_closest; 
-    }
+    
     Point3d[] createNewBox(Point3d max, Point3d min) {
         // we need at least 4 valid points
         Point3d[] points = new Point3d[8];
@@ -344,9 +351,19 @@ public class RsPointCloudToMesh : MonoBehaviour
         points[7] = new Point3d(min.x, max.y, max.z);
         return points;
     }
-    bool insideOfBox (Point3d[] box, Point3d point) {
-        return Math.Abs(point.x) < Math.Abs(box[6].x) && Math.Abs(point.y) < Math.Abs(box[6].y) && Math.Abs(point.z) < Math.Abs(box[6].z)
-        && Math.Abs(point.x) > Math.Abs(box[0].x) && Math.Abs(point.y) > Math.Abs(box[0].y) && Math.Abs(point.z) > Math.Abs(box[0].z);
+    bool insideOfBox (Point3d[] box, Point3d p) {
+        
+        double XMin = box[0].x;
+        double XMax = box[6].x;
+
+        double YMin = box[0].y;
+        double YMax = box[6].y;
+
+        double ZMin = box[0].z;
+        double ZMax = box[6].z;
+        // return Math.Abs(point.x) < Math.Abs(box[6].x) && Math.Abs(point.y) < Math.Abs(box[6].y) && Math.Abs(point.z) < Math.Abs(box[6].z)
+        // && Math.Abs(point.x) > Math.Abs(box[0].x) && Math.Abs(point.y) > Math.Abs(box[0].y) && Math.Abs(point.z) > Math.Abs(box[0].z);
+        return !(p.x < XMin || p.x > XMax || p.y < YMin || p.y > YMax || p.z < ZMin || p.z > ZMax);
     }
     public void updateSet(int key, Point3d p) {
         // update the mesh
@@ -356,14 +373,53 @@ public class RsPointCloudToMesh : MonoBehaviour
         if (gameObj == null) { UnityEngine.Debug.LogError("gameObj component not found." + key); return; }
         if (points == null) { UnityEngine.Debug.LogError("Points array not found." + key); return; }
 
+        // Point3d curr_max = points[6];
+        // Point3d curr_min = points[0];
 
+        double XMin = points[0].x;
+        double XMax = points[6].x;
+
+        double YMin = points[0].y;
+        double YMax = points[6].y;
+
+        double ZMin = points[0].z;
+        double ZMax = points[6].z;
+        
         // rethink this 
-        Point3d max = new Point3d(Math.Max(p.x, points[6].x), Math.Max(p.y, points[6].y), Math.Max(p.z, points[6].z));
-        Point3d min = new Point3d(Math.Min(p.x, points[0].x), Math.Min(p.y, points[0].y), Math.Min(p.z, points[0].z));
+        // Point3d new_max = new Point3d(Math.Max(p.x, curr_max.x), Math.Max(p.y, curr_max.y), Math.Max(p.z, curr_max.z));
+        // Point3d new_min = new Point3d(Math.Min(p.x, curr_min.x), Math.Min(p.y, curr_min.y), Math.Min(p.z, curr_min.z));
 
-        // UnityEngine.Debug.Log("max " + max + " min " + min);
 
-        UpdateMesh(createNewBox(max, min).ToUnityVector3(), gameObj);
+        if (p.x < XMin || p.x > XMax || p.y < YMin || p.y > YMax || p.z < ZMin || p.z > ZMax)
+        {
+            // Point is outside the current bounding box, adjust the dimensions
+            XMin = Math.Min(XMin, p.x);
+            YMin = Math.Min(YMin, p.y);
+            ZMin = Math.Min(ZMin, p.z);
+            XMax = Math.Max(XMax, p.x);
+            YMax = Math.Max(YMax, p.y);
+            ZMax = Math.Max(ZMax, p.z);
+        }
+        
+        Point3d new_max = new Point3d(XMax, YMax, ZMax);
+        Point3d new_min = new Point3d(XMin, YMin, ZMin);
+
+        // float currentSurfaceArea = BoundingBoxSurfaceArea(curr_max, curr_min);
+        // Point3d[] newBox = points;
+        // if (BoundingBoxSurfaceArea(p, curr_min) > currentSurfaceArea) {
+        //     newBox = createNewBox(p, curr_min);
+        // } else if (BoundingBoxSurfaceArea(curr_max, p) > currentSurfaceArea) {
+        //     newBox = createNewBox(curr_max, p);
+        // }
+        UpdateMesh(createNewBox(new_max, new_min).ToUnityVector3(), gameObj);
+    }
+    float BoundingBoxSurfaceArea(Point3d p1, Point3d p2) {
+        // Calculate the absolute differences between the coordinates
+        float width = Mathf.Abs((float)(p1.x - p2.x));
+        float height = Mathf.Abs((float) (p1.y - p2.y));
+        float depth = Mathf.Abs((float)(p1.z - p2.z));
+        // Calculate the surface area
+        return 2 * (width * height + width * depth + height * depth);
     }
     void UpdateMesh(Vector3[] vertices, GameObject gameObject) 
     {
