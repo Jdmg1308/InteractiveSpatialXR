@@ -20,6 +20,8 @@ using System.Data.Common;
 using System.Security.Cryptography;
 using System.Runtime.ExceptionServices;
 using System.Runtime.Remoting.Messaging;
+using System.Linq.Expressions;
+using UnityEngine.AI;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class RsPointCloudToMesh : MonoBehaviour
@@ -31,7 +33,8 @@ public class RsPointCloudToMesh : MonoBehaviour
     private GameObject MeshGameObj;
     private bool first;
     private Dictionary<int, GameObject> GameObjReference;
-    private Dictionary<int, Point3d[]> VerticesReference;
+    private Dictionary<int, Vector3[]> VerticesReference;
+    private Dictionary<int, Vector3> PlaneNormalReference;
     public int[] cube_triangles = new int[] 
         {
             // Front face
@@ -63,9 +66,9 @@ public class RsPointCloudToMesh : MonoBehaviour
 
     FrameQueue q;
     // private int totalTimes;
-    // private double totalSum;
-    // private double minSum = double.MaxValue;
-    // public double maxSum = double.MinValue;
+    // private float totalSum;
+    // private float minSum = float.MaxValue;
+    // public float maxSum = float.MinValue;
 
     void Start()
     {
@@ -237,32 +240,28 @@ public class RsPointCloudToMesh : MonoBehaviour
     // Changes <
     public void Helper() {
         int key = 0;
-        // if (first) { 
-        //     Point3d[] firstPoints = createNewBox(vertices[300].ToCGALPoint3d(), vertices[300].ToCGALPoint3d());
-        //     SetPointsReference(key, firstPoints);
-        //     CreateGameObjs(key, firstPoints);
-        //     key++;
-        //     first = false;
-        // }
-        double MaxVal = 2;
-        double MinVal = 0.1;
+        float MaxVal = 2;
+        float MinVal = 0.1f;
         for (int i = 0; i < vertices.Length; i++)
         {
             // UnityEngine.Debug.Log(vertices[i]);
             if (vertices[i] != new Vector3(0, 0, 0) && (Math.Abs(vertices[i].x) < MaxVal && Math.Abs(vertices[i].y) < MaxVal && Math.Abs(vertices[i].z) < MaxVal) && (Math.Abs(vertices[i].x) > MinVal && Math.Abs(vertices[i].y) > MinVal && Math.Abs(vertices[i].z) > MinVal)) {
-                // if ((Math.Abs(vertices[i].x) < MaxVal && Math.Abs(vertices[i].y) < MaxVal && Math.Abs(vertices[i].z) < MaxVal) && (Math.Abs(vertices[i].x) > MinVal && Math.Abs(vertices[i].y) > MinVal && Math.Abs(vertices[i].z) > MinVal)) {
-                if (!TryAddPoint(vertices[i].ToCGALPoint3d())) {
-                    // could not add point, create new set.
-                    Point3d[] points = createNewBox(vertices[i].ToCGALPoint3d(), vertices[i].ToCGALPoint3d());
-                    SetPointsReference(key, points);
-                    CreateGameObjs(key, points);
-                    key++;
+                bool outside = false;
+                if (!TryAddPoint(vertices[i], ref outside)) {
+                    if (outside) {
+                        // could not add point, if outside create new set.
+                        Vector3[] points = createNewBox(vertices[i], vertices[i]);
+                        SetPointsReference(key, points);
+                        SetPlaneNormalReference(key, new Vector3(0, 0, -1));
+                        CreateGameObjs(key, points);
+                        key++;
+                    }
                 }
             }
         }
     }
 
-    private void CreateGameObjs(int key, Point3d[] points) {
+    private void CreateGameObjs(int key, Vector3[] points) {
         // create gameobj
         GameObject newGameObj = Instantiate(MeshGameObj);
         // create mesh
@@ -270,7 +269,7 @@ public class RsPointCloudToMesh : MonoBehaviour
         
         New_mesh.Clear();
 
-        New_mesh.vertices = points.ToUnityVector3();
+        New_mesh.vertices = points;
         New_mesh.triangles = cube_triangles;
 
         // mesh.RecalculateNormals();
@@ -292,103 +291,121 @@ public class RsPointCloudToMesh : MonoBehaviour
 
     private void Initialize()
     {
-        DIST_THRESHOLD = 1;
+        DIST_THRESHOLD = 0.5f;
         MeshGameObj = GameObject.Find("Hull");
         GameObjReference = new Dictionary<int, GameObject>();
-        VerticesReference = new Dictionary<int, Point3d[]>();
+        VerticesReference = new Dictionary<int, Vector3[]>();
+        PlaneNormalReference = new Dictionary<int, Vector3>();
         first = true;
     }
     
-    bool TryAddPoint(Point3d point) {
+    bool TryAddPoint(Vector3 point, ref bool outside) {
         if (VerticesReference.Keys.Count == 0) {
+            outside = true;
             return false;
         }
-        double min_dist = double.MaxValue;
+        float min_dist = float.MaxValue;
         int minBox = 0;
         // find closest box and distance
         foreach (int i in VerticesReference.Keys) {
             // check if already inside a bounding box
             if (insideOfBox(GetPointsReference(i), point)) {
+                outside = false;
                 return false;
             } else {
                 // get closest distance to a vertex in the mesh
-                
-                double dist = closestPointDistance(point, GetPointsReference(i));
+                float dist = closestPointDistance(point, GetPointsReference(i));
                 if (dist <= min_dist) {
                     min_dist = dist;
                     minBox = i;
                 }
             }
         }
-        // if within threshold then update closest set
-        updateSet(minBox, point);
-        // if (min_dist <= DIST_THRESHOLD) {
-        //     updateSet(minBox, point);
-        //     return true;
-        // }
-        return true;
+        outside = true;
+        // if within threshold and angle then update closest set
+        if (minBox == 0) {
+            Vector3[] points = GetPointsReference(minBox);
+            // UnityEngine.Debug.Log("box with max [" + points[6] + "] and min [" + points[0] + "] p: ["  + point + "]");
+            UnityEngine.Debug.DrawLine(points[6], points[0], Color.red);
+            UnityEngine.Debug.Log(points[6] == points[0]);
+            // UnityEngine.Debug.DrawLine(points[6].ToUnityVector3(), point.ToUnityVector3(), Color.blue);
+            // UnityEngine.Debug.DrawLine(points[0].ToUnityVector3(), point.ToUnityVector3(), Color.green);
+        }
+        if (min_dist <= DIST_THRESHOLD) {
+            if (distanceToPlane(minBox, point) < DIST_THRESHOLD) {
+                updateSet(minBox, point);
+                return true;
+            }
+        }
+        return false;
     }
-    double closestPointDistance(Point3d p, Point3d[] bpx) {
+    float distanceToPlane(int key, Vector3 point) {
+        Vector3 planeNormal = GetPlaneNormalReference(key);
+        Vector3[] points = GetPointsReference(key);
+        // Calculate the vector from the point on the plane to the point to check
+        Vector3 pointToPlane = point - points[6];
+        // Calculate the dot product of the vector and the plane's normal
+        float dotProduct = Vector3.Dot(pointToPlane, planeNormal);
+        // Calculate the distance using the formula
+        float distance = Mathf.Abs(dotProduct) / planeNormal.magnitude;
+        return distance;
+
+    }
+    float closestPointDistance(Vector3 p, Vector3[] bpx) {
         // to get closest mesh get closest point
-        double min_dist = double.MaxValue;
+        float min_dist = float.MaxValue;
         for (int i = 0; i < bpx.Length; i++) {
-            double d1 = Math.Abs((bpx[i] - p).Magnitude); //////////////////////////////////////////////////////////////////////////////////////
+            float d1 = Math.Abs((bpx[i] - p).magnitude); //////////////////////////////////////////////////////////////////////////////////////
             min_dist = Math.Min(d1, min_dist);
         }
         return min_dist; 
     }
     
-    Point3d[] createNewBox(Point3d max, Point3d min) {
+    Vector3[] createNewBox(Vector3 max, Vector3 min) {
         // we need at least 4 valid points
-        Point3d[] points = new Point3d[8];
+        Vector3[] points = new Vector3[8];
         points[0] = min;
-        points[1] = new Point3d(max.x, min.y, min.z);
-        points[2] = new Point3d(max.x, min.y, max.z);
-        points[3] = new Point3d(min.x, min.y, max.z);
-        points[4] = new Point3d(min.x, max.y, min.z);
-        points[5] = new Point3d(max.x, max.y, min.z);
+        points[1] = new Vector3(max.x, min.y, min.z);
+        points[2] = new Vector3(max.x, min.y, max.z);
+        points[3] = new Vector3(min.x, min.y, max.z);
+        points[4] = new Vector3(min.x, max.y, min.z);
+        points[5] = new Vector3(max.x, max.y, min.z);
         points[6] = max;
-        points[7] = new Point3d(min.x, max.y, max.z);
+        points[7] = new Vector3(min.x, max.y, max.z);
         return points;
     }
-    bool insideOfBox (Point3d[] box, Point3d p) {
-        
-        double XMin = box[0].x;
-        double XMax = box[6].x;
-
-        double YMin = box[0].y;
-        double YMax = box[6].y;
-
-        double ZMin = box[0].z;
-        double ZMax = box[6].z;
-        // return Math.Abs(point.x) < Math.Abs(box[6].x) && Math.Abs(point.y) < Math.Abs(box[6].y) && Math.Abs(point.z) < Math.Abs(box[6].z)
-        // && Math.Abs(point.x) > Math.Abs(box[0].x) && Math.Abs(point.y) > Math.Abs(box[0].y) && Math.Abs(point.z) > Math.Abs(box[0].z);
+    bool insideOfBox (Vector3[] box, Vector3 p) {
+        float XMin = box[0].x;
+        float XMax = box[6].x;
+        float YMin = box[0].y;
+        float YMax = box[6].y;
+        float ZMin = box[0].z;
+        float ZMax = box[6].z;
         return !(p.x < XMin || p.x > XMax || p.y < YMin || p.y > YMax || p.z < ZMin || p.z > ZMax);
     }
-    public void updateSet(int key, Point3d p) {
+    public void updateSet(int key, Vector3 p) {
         // update the mesh
-        Point3d[] points = GetPointsReference(key);
+        Vector3[] points = GetPointsReference(key);
         GameObject gameObj = GetGameObjectReference(key);
         
         if (gameObj == null) { UnityEngine.Debug.LogError("gameObj component not found." + key); return; }
         if (points == null) { UnityEngine.Debug.LogError("Points array not found." + key); return; }
 
-        // Point3d curr_max = points[6];
-        // Point3d curr_min = points[0];
+        // Vector3 curr_max = points[6];
+        // Vector3 curr_min = points[0];
 
-        double XMin = points[0].x;
-        double XMax = points[6].x;
+        float XMin = points[0].x;
+        float XMax = points[6].x;
 
-        double YMin = points[0].y;
-        double YMax = points[6].y;
+        float YMin = points[0].y;
+        float YMax = points[6].y;
 
-        double ZMin = points[0].z;
-        double ZMax = points[6].z;
+        float ZMin = points[0].z;
+        float ZMax = points[6].z;
         
         // rethink this 
-        // Point3d new_max = new Point3d(Math.Max(p.x, curr_max.x), Math.Max(p.y, curr_max.y), Math.Max(p.z, curr_max.z));
-        // Point3d new_min = new Point3d(Math.Min(p.x, curr_min.x), Math.Min(p.y, curr_min.y), Math.Min(p.z, curr_min.z));
-
+        // Vector3 new_max = new Vector3(Math.Max(p.x, curr_max.x), Math.Max(p.y, curr_max.y), Math.Max(p.z, curr_max.z));
+        // Vector3 new_min = new Vector3(Math.Min(p.x, curr_min.x), Math.Min(p.y, curr_min.y), Math.Min(p.z, curr_min.z));
 
         if (p.x < XMin || p.x > XMax || p.y < YMin || p.y > YMax || p.z < ZMin || p.z > ZMax)
         {
@@ -401,19 +418,88 @@ public class RsPointCloudToMesh : MonoBehaviour
             ZMax = Math.Max(ZMax, p.z);
         }
         
-        Point3d new_max = new Point3d(XMax, YMax, ZMax);
-        Point3d new_min = new Point3d(XMin, YMin, ZMin);
+        Vector3 new_max = new Vector3(XMax, YMax, ZMax);
+        Vector3 new_min = new Vector3(XMin, YMin, ZMin);
 
         // float currentSurfaceArea = BoundingBoxSurfaceArea(curr_max, curr_min);
-        // Point3d[] newBox = points;
+        // Vector3[] newBox = points;
         // if (BoundingBoxSurfaceArea(p, curr_min) > currentSurfaceArea) {
         //     newBox = createNewBox(p, curr_min);
         // } else if (BoundingBoxSurfaceArea(curr_max, p) > currentSurfaceArea) {
         //     newBox = createNewBox(curr_max, p);
         // }
-        UpdateMesh(createNewBox(new_max, new_min).ToUnityVector3(), gameObj);
+        Vector3[] newBox = createNewBox(new_max, new_min);
+        if (newBox[6].z - newBox[0].z > 0.5) {
+            RotationMethod(key, newBox, gameObj);
+            // update plane
+        } else {  
+            UpdateMesh(newBox, gameObj);
+            SetPointsReference(key, newBox);
+            // update plane
+            UpdatePlane(key, new Quaternion(0, 0, 0, 0));
+        }
     }
-    float BoundingBoxSurfaceArea(Point3d p1, Point3d p2) {
+
+    public void UpdatePlane(int key, Quaternion q) {
+        Vector3[] points = GetPointsReference(key);
+        if (q.x == 0 && q.y == 0 && q.z == 0 && q.w == 0) {
+            float width = Mathf.Abs((float)(points[6].x - points[0].x));
+            float height = Mathf.Abs((float) (points[6].y - points[0].y));
+            float depth = Mathf.Abs((float)(points[6].z - points[0].z));
+            if (width > height && width > depth) {
+                //width
+                SetPlaneNormalReference(key, new Vector3(1, 0, 0));
+            } else if (depth > width) {
+                // depth
+                SetPlaneNormalReference(key, new Vector3(0, 0, 1));
+            } else {
+                // height
+                SetPlaneNormalReference(key, new Vector3(0, 1, 0));
+            }
+        } else {
+            Vector3 normal = GetPlaneNormalReference(key);
+            // Convert the normal to a quaternion with a w value of 0
+            Quaternion normalQuaternion = new Quaternion(normal.x, normal.y, normal.z, 0f);
+            // Rotate the normal quaternion by the rotation quaternion
+            Quaternion rotatedNormalQuaternion = q * normalQuaternion;
+            // Convert the rotated normal quaternion back to a vector
+            Vector3 rotatedNormal = new Vector3(rotatedNormalQuaternion.x, rotatedNormalQuaternion.y, rotatedNormalQuaternion.z);
+            SetPlaneNormalReference(key, rotatedNormal);
+        }
+    }
+    void RotationMethod(int key, Vector3[] points, GameObject obj) {
+        // Calculate extents
+        Vector3 minPoint = points[0];
+        Vector3 maxPoint = points[0];
+        foreach (Vector3 point in points)
+        {
+            minPoint = Vector3.Min(minPoint, point);
+            maxPoint = Vector3.Max(maxPoint, point);
+        }
+
+        // Calculate center
+        Vector3 center = (minPoint + maxPoint) * 0.5f;
+
+        // Calculate rotation
+        Vector3 direction = maxPoint - minPoint;
+        Quaternion rotation = Quaternion.LookRotation(direction, Vector3.up);
+
+        // Create the bounding box
+        GameObject boundingBox = obj;
+        boundingBox.transform.position = center;
+        boundingBox.transform.rotation = rotation;
+
+        // Scale the bounding box based on extents
+        // Vector3 size = maxPoint - minPoint;
+        // boundingBox.transform.localScale = size;
+
+        // Optional: Make it thinner
+        // float thickness = 0.1f; // Adjust as needed
+        // boundingBox.transform.localScale = new Vector3(thickness, size.y, size.z);
+        // SetPointsReference(key, points);
+        UpdatePlane(key, rotation);
+    }
+    float BoundingBoxSurfaceArea(Vector3 p1, Vector3 p2) {
         // Calculate the absolute differences between the coordinates
         float width = Mathf.Abs((float)(p1.x - p2.x));
         float height = Mathf.Abs((float) (p1.y - p2.y));
@@ -445,65 +531,13 @@ public class RsPointCloudToMesh : MonoBehaviour
         // meshCollider.sharedMesh = mesh; // Assign the updated mesh to the collider
     }
     
-    // calculate overall plane
-    
-    // public static Plane CalculateAveragePlane(Vector3[] points)
-    // {
-    //     if (points == null || points.Length < 3)
-    //     {
-    //         UnityEngine.Debug.LogError("Insufficient points to calculate average plane.");
-    //         return new Plane();
-    //     }
 
-    //     // Calculate the centroid of the points
-    //     Vector3 centroid = Vector3.zero;
-    //     foreach (Vector3 point in points)
-    //     {
-    //         centroid += point;
-    //     }
-    //     centroid /= points.Length;
+    // box has a certain tangent plane, if it grows beyond a certain limit then dont and instead rotate 
+    //Find the Extents: Calculate the minimum and maximum points along each axis (x, y, and z) from your set of points. These points will define the corners of your bounding box.
+    // Calculate Center: Compute the center point of the bounding box by averaging the minimum and maximum points along each axis.
+    // Calculate Rotation: Determine the rotation of the bounding box. Since you want the bounding box to be aligned with the diagonal shape, you can calculate the rotation based on the direction of the diagonal. This can be achieved by finding the vector that connects the minimum and maximum points.
+    // Create the Bounding Box: Using the calculated center and rotation, you can instantiate a bounding box GameObject in Unity and set its position and rotation accordingly.
 
-    //     // Compute the covariance matrix
-    //     Matrix4x4 covarianceMatrix = new Matrix4x4();
-    //     foreach (Vector3 point in points)
-    //     {
-    //         Vector3 deviation = point - centroid;
-    //         covarianceMatrix.m00 += deviation.x * deviation.x;
-    //         covarianceMatrix.m01 += deviation.x * deviation.y;
-    //         covarianceMatrix.m02 += deviation.x * deviation.z;
-    //         covarianceMatrix.m11 += deviation.y * deviation.y;
-    //         covarianceMatrix.m12 += deviation.y * deviation.z;
-    //         covarianceMatrix.m22 += deviation.z * deviation.z;
-    //     }
-    //     covarianceMatrix /= points.Length;
-
-    //     // Compute the normal vector of the best-fit plane using PCA
-    //     Vector3 normal = Vector3.zero;
-    //     if (PCA(covarianceMatrix, ref normal))
-    //     {
-    //         return new Plane(normal, centroid);
-    //     }
-    //     else
-    //     {
-    //         UnityEngine.Debug.LogError("Failed to compute normal vector.");
-    //         return new Plane();
-    //     }
-    // }
-
-    // private static bool PCA(Matrix4x4 covarianceMatrix, ref Vector3 normal)
-    // {
-    //     // Perform eigenvalue decomposition to find the eigenvector corresponding to the smallest eigenvalue
-    //     Matrix4x4 eigenVectors;
-    //     if (!covarianceMatrix.Diagonalize(out eigenVectors))
-    //     {
-    //         return false;
-    //     }
-
-    //     // The eigenvector corresponding to the smallest eigenvalue is the normal of the plane
-    //     normal = eigenVectors.GetColumn(2).normalized;
-
-    //     return true;
-    // }
     
     // Method to set the GameObj for a given key
     public void SetGameObjectReference(int key, GameObject value)
@@ -526,7 +560,7 @@ public class RsPointCloudToMesh : MonoBehaviour
         return gamObj;
     }
     // Method to set the points array  for a given key
-    public void SetPointsReference(int key, Point3d[] value)
+    public void SetPointsReference(int key, Vector3[] value)
     {
         if (VerticesReference.ContainsKey(key)) { 
             // Key already exists, update the value 
@@ -539,12 +573,34 @@ public class RsPointCloudToMesh : MonoBehaviour
         }
     }
     // Method to get the points array reference for a given key
-    public Point3d[] GetPointsReference(int key)
+    public Vector3[] GetPointsReference(int key)
     {
-        Point3d[] points = null;
+        Vector3[] points = null;
         VerticesReference.TryGetValue(key, out points);
         return points;
     }
 
+    public void SetPlaneNormalReference(int key, Vector3 normal)
+    {
+        if (PlaneNormalReference.ContainsKey(key)) { 
+            // Key already exists, update the value 
+            PlaneNormalReference[key] = normal;
+        }
+        else
+        {
+            // Key doesn't exist, add a new entry
+            PlaneNormalReference.Add(key, normal);
+        }
+    }
+    // Method to get the normal reference for a given key
+    public Vector3 GetPlaneNormalReference(int key)
+    {
+        Vector3 normal;
+        PlaneNormalReference.TryGetValue(key, out normal);
+        return normal;
+    }
+
 }
+
+// reformat the code so you use vect3
 
